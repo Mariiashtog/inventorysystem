@@ -1,101 +1,92 @@
-// API URL
-const API_URL = 'http://localhost:3000/api/items';
+const API_URL = '/api/items';
 
-// Змінні
-let currentEditId = null;
-let allProducts = [];
+let currentEditId = null; // Для відстеження, чи редагуємо ми товар
 
-// Чекаємо завантаження сторінки
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Сторінка завантажена, шукаємо елементи...');
-
-    // Отримуємо елементи
     const modal = document.getElementById('productModal');
+    const modalTitle = document.getElementById('modalTitle');
     const openBtn = document.getElementById('openModalBtn');
     const closeBtn = document.getElementById('closeModalBtn');
     const saveBtn = document.getElementById('saveProductBtn');
     const container = document.getElementById('productsContainer');
+
+    // Фільтри
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 
-    // Перевіряємо, чи знайшли всі кнопки
-    console.log('Кнопка "Додати товар":', openBtn);
-    console.log('Кнопка "Скасувати":', closeBtn);
-    console.log('Кнопка "Зберегти":', saveBtn);
+    let allProducts = []; // Зберігаємо всі товари для фільтрації
 
-    // Функція завантаження товарів
-    async function loadProducts() {
+    // Завантаження товарів з сервера
+    const loadProducts = async () => {
         try {
-            console.log('Завантаження товарів...');
-            const response = await fetch(API_URL);
-            if (!response.ok) throw new Error('Помилка завантаження');
-            allProducts = await response.json();
-            console.log('Отримано товарів:', allProducts.length);
+            const res = await fetch(API_URL);
+            allProducts = await res.json();
             applyFilters();
         } catch (error) {
             console.error('Помилка завантаження:', error);
-            if (container) {
-                container.innerHTML = '<div class="empty-state">❌ Сервер не запущено! Виконайте node server.js</div>';
-            }
+            container.innerHTML = '<div class="empty-state">❌ Помилка завантаження товарів. Переконайтесь, що сервер запущено</div>';
         }
-    }
+    };
 
-    // Функція фільтрації
-    function applyFilters() {
-        if (!searchInput || !categoryFilter) return;
-
+    // Фільтрація товарів
+    const applyFilters = () => {
         const searchTerm = searchInput.value.toLowerCase();
         const category = categoryFilter.value;
 
-        let filtered = [...allProducts];
+        let filtered = allProducts;
 
         if (searchTerm) {
-            filtered = filtered.filter(p => p.name && p.name.toLowerCase().includes(searchTerm));
-            console.log('Пошук:', searchTerm, 'Знайдено:', filtered.length);
+            filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm));
         }
 
         if (category) {
             filtered = filtered.filter(p => p.category === category);
         }
 
-        renderProducts(filtered);
-    }
+        render(filtered);
+    };
 
-    // Функція відображення
-    function renderProducts(products) {
-        if (!container) return;
-
-        if (!products || products.length === 0) {
+    // Відображення товарів
+    const render = (products) => {
+        container.innerHTML = '';
+        if (products.length === 0) {
             container.innerHTML = '<div class="empty-state">✨ Товарів поки немає. Натисніть «Додати товар»</div>';
             return;
         }
 
-        container.innerHTML = '';
-
-        products.forEach(product => {
+        products.forEach(p => {
             const card = document.createElement('div');
             card.className = 'product-card';
             card.innerHTML = `
-                <div class="product-img">${getEmoji(product.category)}</div>
-                <div class="product-title">${escapeHtml(product.name)}</div>
-                <div class="product-price">${product.price} ₴</div>
-                <div class="product-desc">${escapeHtml(product.description || 'Без опису')}</div>
-                <div style="margin: 10px 0">
-                    <span class="badge">📁 ${escapeHtml(product.category)}</span>
-                    <span class="badge">📦 ${product.quantity || 1} шт.</span>
+                <div class="product-img">${getEmojiForCategory(p.category)}</div>
+                <div class="product-title">${escapeHtml(p.name)}</div>
+                <div class="product-price">${p.price} ₴</div>
+                <div class="product-desc">${escapeHtml(p.description || 'Без опису')}</div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                    <span class="badge category-badge">📁 ${escapeHtml(p.category)}</span>
+                    <span class="badge quantity-badge">📦 В наявності: ${p.quantity || 1} шт.</span>
                 </div>
                 <div class="product-actions">
-                    <button class="edit-btn" onclick="editProduct(${product.id})">✏️ Редагувати</button>
-                    <button class="delete-btn" onclick="deleteProduct(${product.id})">🗑️ Видалити</button>
+                    <button class="edit-btn" data-id="${p.id}">✏️ Редагувати</button>
+                    <button class="delete-btn" data-id="${p.id}">🗑️ Видалити</button>
                 </div>
             `;
             container.appendChild(card);
         });
-    }
 
-    // Допоміжні функції
-    function getEmoji(category) {
+        // Додаємо обробники для кнопок редагування та видалення
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => editProduct(parseInt(btn.dataset.id)));
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => deleteProduct(parseInt(btn.dataset.id)));
+        });
+    };
+
+    // Емодзі для категорій
+    const getEmojiForCategory = (category) => {
         const emojis = {
             'Мистецтво': '🎨',
             'Посуд': '🍽️',
@@ -104,8 +95,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'Одяг': '👕'
         };
         return emojis[category] || '📦';
-    }
+    };
 
+    // Функція для захисту від XSS
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, function(m) {
@@ -116,15 +108,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Функції для кнопок (глобальні)
-    window.editProduct = async function(id) {
-        console.log('Редагування товару ID:', id);
+    // Відкриття модалки для додавання
+    const openAddModal = () => {
+        currentEditId = null;
+        modalTitle.textContent = '➕ Новий товар';
+        document.getElementById('productName').value = '';
+        document.getElementById('productPrice').value = '';
+        document.getElementById('productCategory').value = 'Мистецтво';
+        document.getElementById('productQuantity').value = '1';
+        document.getElementById('productDesc').value = '';
+        modal.style.display = 'flex';
+    };
+
+    // Відкриття модалки для редагування
+    const editProduct = async (id) => {
         try {
-            const response = await fetch(`${API_URL}/${id}`);
-            const product = await response.json();
+            const res = await fetch(`${API_URL}/${id}`);
+            const product = await res.json();
 
             currentEditId = id;
-            document.getElementById('modalTitle').textContent = '✏️ Редагувати товар';
+            modalTitle.textContent = '✏️ Редагувати товар';
             document.getElementById('productName').value = product.name;
             document.getElementById('productPrice').value = product.price;
             document.getElementById('productCategory').value = product.category;
@@ -132,46 +135,39 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('productDesc').value = product.description || '';
             modal.style.display = 'flex';
         } catch (error) {
-            console.error('Помилка:', error);
-            alert('Не вдалося завантажити товар');
+            console.error('Помилка завантаження товару:', error);
+            alert('Не вдалося завантажити дані товару');
         }
     };
 
-    window.deleteProduct = async function(id) {
-        if (confirm('Видалити товар?')) {
-            console.log('Видалення товару ID:', id);
+    // Видалення товару
+    const deleteProduct = async (id) => {
+        if (confirm('Ви впевнені, що хочете видалити цей товар?')) {
             try {
-                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-                await loadProducts();
+                const res = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    await loadProducts();
+                } else {
+                    alert('Помилка при видаленні товару');
+                }
             } catch (error) {
-                console.error('Помилка видалення:', error);
-                alert('Не вдалося видалити');
+                console.error('Помилка:', error);
+                alert('Не вдалося видалити товар');
             }
         }
     };
 
-    // Відкриття модалки
-    function openModal() {
-        console.log('Відкриття модалки');
-        currentEditId = null;
-        document.getElementById('modalTitle').textContent = '➕ Новий товар';
-        document.getElementById('productName').value = '';
-        document.getElementById('productPrice').value = '';
-        document.getElementById('productCategory').value = 'Мистецтво';
-        document.getElementById('productQuantity').value = '1';
-        document.getElementById('productDesc').value = '';
-        modal.style.display = 'flex';
-    }
-
-    // Закриття модалки
-    function closeModal() {
+    // Закриття модалки (кнопка "Скасувати")
+    const closeModal = () => {
         modal.style.display = 'none';
-    }
+        currentEditId = null;
+    };
 
-    // Збереження товару
-    async function saveProduct() {
-        console.log('Збереження товару...');
-
+    // Збереження товару (додавання або оновлення)
+    const saveProduct = async () => {
         const name = document.getElementById('productName').value.trim();
         const price = document.getElementById('productPrice').value;
         const category = document.getElementById('productCategory').value;
@@ -184,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!price || price <= 0) {
-            alert('Введіть ціну');
+            alert('Введіть коректну ціну');
             return;
         }
 
@@ -198,13 +194,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             let response;
+
             if (currentEditId) {
+                // Оновлення існуючого товару
                 response = await fetch(`${API_URL}/${currentEditId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(productData)
                 });
             } else {
+                // Додавання нового товару
                 response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -215,36 +214,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 closeModal();
                 await loadProducts();
-                console.log('Товар збережено!');
             } else {
-                alert('Помилка збереження');
+                alert('Помилка при збереженні товару');
             }
         } catch (error) {
             console.error('Помилка:', error);
-            alert('Помилка збереження. Переконайтесь, що сервер запущено');
+            alert('Не вдалося зберегти товар');
         }
-    }
-
-    // Скидання фільтрів
-    function resetFilters() {
-        if (searchInput) searchInput.value = '';
-        if (categoryFilter) categoryFilter.value = '';
-        applyFilters();
-    }
-
-    // Додаємо обробники подій
-    if (openBtn) openBtn.onclick = openModal;
-    if (closeBtn) closeBtn.onclick = closeModal;
-    if (saveBtn) saveBtn.onclick = saveProduct;
-    if (resetFiltersBtn) resetFiltersBtn.onclick = resetFilters;
-    if (searchInput) searchInput.oninput = applyFilters;
-    if (categoryFilter) categoryFilter.onchange = applyFilters;
-
-    // Закриття по кліку на фон
-    window.onclick = function(e) {
-        if (e.target === modal) closeModal();
     };
 
-    // Завантажуємо товари
+    // Скидання фільтрів
+    const resetFilters = () => {
+        searchInput.value = '';
+        categoryFilter.value = '';
+        applyFilters();
+    };
+
+    // ========== ПОДІЇ ==========
+    openBtn.addEventListener('click', openAddModal);
+    closeBtn.addEventListener('click', closeModal);
+    saveBtn.addEventListener('click', saveProduct);
+    resetFiltersBtn.addEventListener('click', resetFilters);
+    searchInput.addEventListener('input', applyFilters);
+    categoryFilter.addEventListener('change', applyFilters);
+
+    // Закриття модалки при кліку поза нею
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Завантажуємо товари при старті
     loadProducts();
 });
