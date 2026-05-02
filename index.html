@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магазин · Дизайн + Backend</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="container">
+    <div class="shop-header">
+        <h1>🛍️ Дизайн-маркет</h1>
+        <button class="add-btn" id="openModalBtn">+ Додати товар</button>
+    </div>
+
+    <!-- Фільтри та пошук -->
+    <div class="filters-section">
+        <input type="text" id="searchInput" placeholder="🔍 Пошук за назвою..." class="search-input">
+        <select id="categoryFilter" class="category-filter">
+            <option value="">Всі категорії</option>
+            <option value="Мистецтво">Мистецтво</option>
+            <option value="Посуд">Посуд</option>
+            <option value="Декор">Декор</option>
+            <option value="Електроніка">Електроніка</option>
+            <option value="Одяг">Одяг</option>
+        </select>
+        <button id="resetFiltersBtn" class="reset-btn">Скинути фільтри</button>
+    </div>
+
+    <div id="productsContainer" class="products-grid">
+    </div>
+
+    <footer>
+        ⚡ Backend + Frontend | Товари зберігаються на сервері
+    </footer>
+</div>
+
+<!-- Модальне вікно для додавання/редагування -->
+<div id="productModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">➕ Новий товар</h3>
+
+        <label>Назва товару *</label>
+        <input type="text" id="productName" placeholder="Наприклад: Мінімалістичний стілець">
+
+        <label>Ціна (грн) *</label>
+        <input type="number" id="productPrice" placeholder="1299">
+
+        <label>Категорія *</label>
+        <select id="productCategory">
+            <option value="Мистецтво">Мистецтво</option>
+            <option value="Посуд">Посуд</option>
+            <option value="Декор">Декор</option>
+            <option value="Електроніка">Електроніка</option>
+            <option value="Одяг">Одяг</option>
+        </select>
+
+        <label>Кількість</label>
+        <input type="number" id="productQuantity" placeholder="1" value="1">
+
+        <label>Опис (необов'язково)</label>
+        <textarea id="productDesc" rows="2" placeholder="Коротко про товар..."></textarea>
+
+        <div class="modal-actions">
+            <button class="cancel-btn" id="closeModalBtn">Скасувати</button>
+            <button class="save-btn" id="saveProductBtn">Зберегти →</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/script.js"></script>
+
+</body>
+</html>
