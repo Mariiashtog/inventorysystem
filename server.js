@@ -17,6 +17,46 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
+app.get('/api/categories', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM categories');
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/categories', async (req, res) => {
+    try {
+        const { category_name } = req.body;
+        if (!category_name) return res.status(400).json({ error: 'Name required' });
+        const [result] = await pool.query('INSERT INTO categories (category_name) VALUES (?)', [category_name]);
+        res.status(201).json({ id: result.insertId, category_name });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/categories/:id', async (req, res) => {
+    try {
+        const { category_name } = req.body;
+        await pool.query('UPDATE categories SET category_name = ? WHERE idcategories = ?', [category_name, req.params.id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/categories/:id', async (req, res) => {
+    try {
+        await pool.query('UPDATE products SET category_id = NULL WHERE category_id = ?', [req.params.id]);
+        await pool.query('DELETE FROM categories WHERE idcategories = ?', [req.params.id]);
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/api/items', async (req, res) => {
     try {
         const { name, category } = req.query;
@@ -63,9 +103,7 @@ app.get('/api/items/:id', async (req, res) => {
 app.post('/api/items', async (req, res) => {
     try {
         const { name, category, quantity, price } = req.body;
-        if (!name || !category || quantity === undefined) {
-            return res.status(400).json({ error: 'Missing required fields' });
-        }
+        if (!name || !category || quantity === undefined) return res.status(400).json({ error: 'Missing fields' });
 
         let [catRows] = await pool.query('SELECT idcategories FROM categories WHERE category_name = ?', [category]);
         let categoryId;
@@ -82,13 +120,40 @@ app.post('/api/items', async (req, res) => {
             [name, quantity, price || 0, categoryId]
         );
 
-        res.status(201).json({
-            id: result.insertId,
-            name,
-            category,
-            quantity,
-            price: price || 0
-        });
+        res.status(201).json({ id: result.insertId, name, category, quantity, price: price || 0 });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/items/:id', async (req, res) => {
+    try {
+        const { name, category, quantity, price } = req.body;
+        let categoryId = null;
+
+        if (category) {
+            let [catRows] = await pool.query('SELECT idcategories FROM categories WHERE category_name = ?', [category]);
+            if (catRows.length > 0) {
+                categoryId = catRows[0].idcategories;
+            } else {
+                const [newCat] = await pool.query('INSERT INTO categories (category_name) VALUES (?)', [category]);
+                categoryId = newCat.insertId;
+            }
+        }
+
+        let updateQuery = 'UPDATE products SET ';
+        const updateParams = [];
+
+        if (name) { updateQuery += 'name = ?, '; updateParams.push(name); }
+        if (quantity !== undefined) { updateQuery += 'quantity = ?, '; updateParams.push(quantity); }
+        if (price !== undefined) { updateQuery += 'price = ?, '; updateParams.push(price); }
+        if (categoryId) { updateQuery += 'category_id = ?, '; updateParams.push(categoryId); }
+
+        updateQuery = updateQuery.slice(0, -2) + ' WHERE idproducts = ?';
+        updateParams.push(req.params.id);
+
+        await pool.query(updateQuery, updateParams);
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -96,8 +161,7 @@ app.post('/api/items', async (req, res) => {
 
 app.delete('/api/items/:id', async (req, res) => {
     try {
-        const [result] = await pool.query('DELETE FROM products WHERE idproducts = ?', [req.params.id]);
-        if (result.affectedRows === 0) return res.status(404).json({ error: 'Item not found' });
+        await pool.query('DELETE FROM products WHERE idproducts = ?', [req.params.id]);
         res.status(204).send();
     } catch (error) {
         res.status(500).json({ error: error.message });
