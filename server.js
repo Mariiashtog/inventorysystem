@@ -1,72 +1,107 @@
 const express = require('express');
 const path = require('path');
-const app = express();
+const mysql = require('mysql2/promise');
+require('dotenv').config();
 
+const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
-let inventory = [];
-let currentId = 1;
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
 
-app.get('/api/items', (req, res) => {
-    const { name, category } = req.query;
-    let results = inventory;
+app.get('/api/items', async (req, res) => {
+    try {
+        const { name, category } = req.query;
+        let query = `
+            SELECT p.idproducts as id, p.name, p.quantity, p.price, c.category_name as category 
+            FROM products p 
+            LEFT JOIN categories c ON p.category_id = c.idcategories 
+            WHERE 1=1
+        `;
+        const params = [];
 
-    if (name) {
-        results = results.filter(item => item.name.toLowerCase().includes(name.toLowerCase()));
+        if (name) {
+            query += ' AND p.name LIKE ?';
+            params.push(`%${name}%`);
+        }
+        if (category) {
+            query += ' AND c.category_name = ?';
+            params.push(category);
+        }
+
+        const [rows] = await pool.query(query, params);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-    if (category) {
-        results = results.filter(item => item.category.toLowerCase() === category.toLowerCase());
+});
+
+app.get('/api/items/:id', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT p.idproducts as id, p.name, p.quantity, p.price, c.category_name as category 
+            FROM products p 
+            LEFT JOIN categories c ON p.category_id = c.idcategories 
+            WHERE p.idproducts = ?
+        `, [req.params.id]);
+
+        if (rows.length === 0) return res.status(404).json({ error: 'Item not found' });
+        res.json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-
-    res.json(results);
 });
 
-app.get('/api/items/:id', (req, res) => {
-    const item = inventory.find(i => i.id === parseInt(req.params.id));
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-    res.json(item);
-});
+app.post('/api/items', async (req, res) => {
+    try {
+        const { name, category, quantity, price } = req.body;
+        if (!name || !category || quantity === undefined) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
 
-app.post('/api/items', (req, res) => {
-    const { name, category, quantity, price } = req.body;
+        let [catRows] = await pool.query('SELECT idcategories FROM categories WHERE category_name = ?', [category]);
+        let categoryId;
 
-    if (!name || !category || quantity === undefined) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        if (catRows.length > 0) {
+            categoryId = catRows[0].idcategories;
+        } else {
+            const [newCat] = await pool.query('INSERT INTO categories (category_name) VALUES (?)', [category]);
+            categoryId = newCat.insertId;
+        }
+
+        const [result] = await pool.query(
+            'INSERT INTO products (name, quantity, price, category_id) VALUES (?, ?, ?, ?)',
+            [name, quantity, price || 0, categoryId]
+        );
+
+        res.status(201).json({
+            id: result.insertId,
+            name,
+            category,
+            quantity,
+            price: price || 0
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-
-    const newItem = {
-        id: currentId++,
-        name,
-        category,
-        quantity,
-        price: price || 0
-    };
-
-    inventory.push(newItem);
-    res.status(201).json(newItem);
 });
 
-app.put('/api/items/:id', (req, res) => {
-    const item = inventory.find(i => i.id === parseInt(req.params.id));
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-
-    const { name, category, quantity, price } = req.body;
-
-    if (name) item.name = name;
-    if (category) item.category = category;
-    if (quantity !== undefined) item.quantity = quantity;
-    if (price !== undefined) item.price = price;
-
-    res.json(item);
-});
-
-app.delete('/api/items/:id', (req, res) => {
-    const index = inventory.findIndex(i => i.id === parseInt(req.params.id));
-    if (index === -1) return res.status(404).json({ error: 'Item not found' });
-
-    inventory.splice(index, 1);
-    res.status(204).send();
+app.delete('/api/items/:id', async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM products WHERE idproducts = ?', [req.params.id]);
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Item not found' });
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.get('/', (req, res) => {
@@ -74,10 +109,10 @@ app.get('/', (req, res) => {
 });
 
 if (require.main === module) {
-    const PORT = 3000;
+    const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
         console.log(`Server running at: http://localhost:${PORT}`);
     });
 }
 
-module.exports = { app, inventory };
+module.exports = { app };
