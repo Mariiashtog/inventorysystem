@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Магазин · Дизайн + Backend</title>
+    <title>Магазин</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
 </head>
@@ -11,10 +11,13 @@
 
 <div class="container">
     <div class="shop-header">
-        <h1>🛍️ Дизайн-маркет</h1>
-        <div style="display: flex; gap: 10px;">
-            <button class="add-btn" id="openCatModalBtn" style="background: #4a5568;">Категорії</button>
-            <button class="add-btn" id="openModalBtn">+ Додати товар</button>
+        <h1>🛍️ Інвентарний склад </h1>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="add-btn" id="loginBtn" style="background: #10b981;">Увійти</button>
+            <button class="add-btn" id="basketBtn" style="background: #3b82f6; display: none;">🛒 Кошик</button>
+            <button class="add-btn" id="logoutBtn" style="background: #ef4444; display: none;">Вийти</button>
+            <button class="add-btn" id="openCatModalBtn" style="background: #4a5568; display: none;">Категорії</button>
+            <button class="add-btn" id="openModalBtn" style="display: none;">+ Додати товар</button>
         </div>
     </div>
 
@@ -28,33 +31,45 @@
 
     <div id="productsContainer" class="products-grid">
     </div>
+</div>
 
-    <footer>
-        ⚡ Backend + Frontend | Товари зберігаються на сервері
-    </footer>
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <h3>🔐 Вхід</h3>
+        <input type="text" id="loginUsername" placeholder="Логін" style="margin-bottom: 10px;">
+        <input type="password" id="loginPassword" placeholder="Пароль">
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button class="cancel-btn" id="closeLoginModalBtn">Закрити</button>
+            <button class="save-btn" id="performLoginBtn">Увійти</button>
+        </div>
+    </div>
+</div>
+
+<div id="basketModal" class="modal">
+    <div class="modal-content">
+        <h3>🛒 Ваш кошик</h3>
+        <div id="basketItems" style="margin-bottom: 20px;"></div>
+        <div class="modal-actions">
+            <button class="cancel-btn" id="closeBasketModalBtn">Закрити</button>
+        </div>
+    </div>
 </div>
 
 <div id="productModal" class="modal">
     <div class="modal-content">
-        <h3 id="modalTitle">➕ Новий товар</h3>
+        <h3 id="modalTitle">Новий товар</h3>
         <input type="hidden" id="productId">
-
         <label>Назва товару *</label>
         <input type="text" id="productName">
-
         <label>Ціна (грн) *</label>
         <input type="number" id="productPrice">
-
         <label>Категорія *</label>
-        <select id="productCategory">
-        </select>
-
+        <select id="productCategory"></select>
         <label>Кількість</label>
         <input type="number" id="productQuantity" value="1">
-
         <div class="modal-actions">
             <button class="cancel-btn" id="closeModalBtn">Скасувати</button>
-            <button class="save-btn" id="saveProductBtn">Зберегти →</button>
+            <button class="save-btn" id="saveProductBtn">Зберегти</button>
         </div>
     </div>
 </div>
@@ -62,13 +77,11 @@
 <div id="categoryModal" class="modal">
     <div class="modal-content">
         <h3>Управління категоріями</h3>
-
         <label>Додати нову</label>
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
             <input type="text" id="newCategoryName" placeholder="Назва категорії">
             <button class="save-btn" id="addCategoryBtn">Додати</button>
         </div>
-
         <label>Редагувати / Видалити</label>
         <select id="editCategorySelect" style="margin-bottom: 10px; width: 100%;"></select>
         <input type="text" id="editCategoryName" placeholder="Нова назва" style="margin-bottom: 10px;">
@@ -76,7 +89,6 @@
             <button class="save-btn" id="updateCategoryBtn">Оновити</button>
             <button class="cancel-btn" id="deleteCategoryBtn" style="background: #ff4d4f; color: white;">Видалити</button>
         </div>
-
         <div class="modal-actions" style="margin-top: 20px;">
             <button class="cancel-btn" id="closeCatModalBtn">Закрити</button>
         </div>
