@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Інвентарний склад</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="container">
+    <header class="shop-header">
+        <h1>📦 Інвентарний склад</h1>
+        <div class="header-buttons">
+            <button class="add-btn btn-basket" id="basketBtn" style="display: none;">
+                 Кошик
+            </button>
+            <button class="add-btn btn-logout" id="logoutBtn" style="display: none;">
+                 Вийти
+            </button>
+            <button class="add-btn btn-categories" id="openCatModalBtn" style="display: none;">
+                 Категорії
+            </button>
+            <button class="add-btn btn-add" id="openModalBtn" style="display: none;">
+                ➕ Додати товар
+            </button>
+            <button class="add-btn btn-login" id="loginBtn">
+                🔐 Увійти
+            </button>
+        </div>
+    </header>
+
+    <div class="filters-section">
+        <input type="text" id="searchInput" placeholder=" Пошук за назвою..." class="search-input">
+        <select id="categoryFilter" class="category-filter">
+            <option value="">Всі категорії</option>
+        </select>
+        <button id="resetFiltersBtn" class="reset-btn"> Скинути</button>
+    </div>
+
+    <div id="productsContainer" class="products-grid">
+        <div class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <h3>Завантаження...</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Login Modal -->
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <h3>🔐 Вхід</h3>
+        <div class="form-group">
+            <label>Логін</label>
+            <input type="text" id="loginUsername" placeholder="admin">
+        </div>
+        <div class="form-group">
+            <label>Пароль</label>
+            <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" id="closeLoginModalBtn">Скасувати</button>
+            <button class="btn btn-save" id="performLoginBtn">Увійти</button>
+        </div>
+    </div>
+</div>
+
+<!-- Basket Modal -->
+<div id="basketModal" class="modal">
+    <div class="modal-content">
+        <h3>Кошик</h3>
+        <div id="basketItems"></div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" id="closeBasketModalBtn">Закрити</button>
+        </div>
+    </div>
+</div>
+
+<!-- Product Modal -->
+<div id="productModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">➕ Новий товар</h3>
+        <input type="hidden" id="productId">
+
+        <div class="form-group">
+            <label>Назва товару *</label>
+            <input type="text" id="productName" placeholder="Наприклад: iPhone 15 Pro">
+        </div>
+
+        <div class="form-group">
+            <label>Ціна (грн) *</label>
+            <input type="number" id="productPrice" placeholder="0.00" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+            <label> URL зображення</label>
+            <input type="url" id="productImage" placeholder="https://example.com/photo.jpg">
+            <small style="color: var(--gray); margin-top: 0.5rem; display: block;">
+                Вставте посилання на фото або залиште порожнім для стандартної іконки
+            </small>
+        </div>
+
+        <div class="form-group">
+            <label>Категорія *</label>
+            <select id="productCategory"></select>
+        </div>
+
+        <div class="form-group">
+            <label>Кількість</label>
+            <input type="number" id="productQuantity" value="1" min="0">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-cancel" id="closeModalBtn">Скасувати</button>
+            <button class="btn btn-save" id="saveProductBtn">💾 Зберегти</button>
+        </div>
+    </div>
+</div>
+
+<!-- Category Modal -->
+<div id="categoryModal" class="modal">
+    <div class="modal-content">
+        <h3>Категорії</h3>
+        <div class="form-group">
+            <label>Нова категорія</label>
+            <div style="display:flex;gap:0.5rem">
+                <input type="text" id="newCategoryName" placeholder="Назва">
+                <button class="btn btn-save" id="addCategoryBtn">Додати</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Редагувати/Видалити</label>
+            <select id="editCategorySelect"></select>
+            <input type="text" id="editCategoryName" placeholder="Нова назва" style="margin-top:0.5rem">
+        </div>
+        <div style="display:flex;gap:0.5rem">
+            <button class="btn btn-save" id="updateCategoryBtn" style="flex:1">✏️ Оновити</button>
+            <button class="btn btn-delete" id="deleteCategoryBtn" style="flex:1">🗑️ Видалити</button>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" id="closeCatModalBtn">Закрити</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/script.js"></script>
+</body>
+</html>
